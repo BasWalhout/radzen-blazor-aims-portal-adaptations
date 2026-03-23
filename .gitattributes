@@ -1,0 +1,4 @@
+Radzen.Blazor.Tests/** merge=ours
+RadzenBlazorDemos/** merge=ours
+RadzenBlazorDemos.Host/** merge=ours
+RadzenBlazorDemos.Tools/** merge=ours
