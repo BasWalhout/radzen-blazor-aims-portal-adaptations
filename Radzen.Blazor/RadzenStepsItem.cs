@@ -160,6 +160,12 @@ namespace Radzen.Blazor
             }
         }
 
+        public override void Dispose()
+        {
+            base.Dispose();
+            _steps?.RemoveStep(this);
+        }
+
         /// <summary>
         /// Set parameters as an asynchronous operation.
         /// </summary>

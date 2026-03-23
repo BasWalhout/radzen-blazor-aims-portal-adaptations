@@ -5,14 +5,6 @@ VisualStudioVersion = 17.0.31612.314
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Radzen.Blazor", "Radzen.Blazor\Radzen.Blazor.csproj", "{30919FA8-6A6A-45A3-9B05-0B65ABF8F70F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RadzenBlazorDemos", "RadzenBlazorDemos\RadzenBlazorDemos.csproj", "{DF9EC444-791A-415A-A3EB-C4B008E5FCB5}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Radzen.Blazor.Tests", "Radzen.Blazor.Tests\Radzen.Blazor.Tests.csproj", "{BC20637F-A979-425A-9C3F-D72633FE555C}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RadzenBlazorDemos.Host", "RadzenBlazorDemos.Host\RadzenBlazorDemos.Host.csproj", "{18702B3F-791E-45F3-BCFD-1792A1300AAB}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RadzenBlazorDemos.Server", "RadzenBlazorDemos.Server\RadzenBlazorDemos.Server.csproj", "{EC869401-304A-45BC-93CA-C1CDFAAA7F7B}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{972C3730-C322-4A6F-A106-18D53BF8E08D}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
