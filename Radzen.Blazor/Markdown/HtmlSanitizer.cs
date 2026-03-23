@@ -1,4 +1,5 @@
 
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -78,7 +79,7 @@ class HtmlSanitizer
 
         var safeAttributes = Regex.Replace(attributes, @"(\w+)\s*=\s*(""[^""]*""|'[^']*'|[^\s>]+)", SanitizeAttribute);
 
-        return $"<{(match.Value.StartsWith("</") ? "/" : "")}{tag}{safeAttributes}>";
+        return $"<{(match.Value.StartsWith("</", StringComparison.Ordinal) ? "/" : "")}{tag}{safeAttributes}>";
     }
 
     private string SanitizeAttribute(Match match)
@@ -89,6 +90,11 @@ class HtmlSanitizer
         if (!allowedAttributes.Contains(name))
         {
             return string.Empty;
+        }
+
+        if ((value.StartsWith('\'') && value.EndsWith('\'')) || (value.StartsWith('"') && value.EndsWith('"')))
+        {
+            value = value[1..^1];
         }
 
         if (name == "style")
@@ -104,11 +110,6 @@ class HtmlSanitizer
         if (UriAttributes.Contains(name) && IsDangerousUrl(value))
         {
             return string.Empty;
-        }
-
-        if ((value.StartsWith('\'') && value.EndsWith('\'')) || (value.StartsWith('"') && value.EndsWith('"')))
-        {
-            value = value[1..^1];
         }
 
         return $" {name}=\"{value}\"";
@@ -128,9 +129,9 @@ class HtmlSanitizer
 
         var decoded = HtmlDecode(value).Trim().ToLowerInvariant();
 
-        return decoded.StartsWith("javascript:") ||
-               decoded.StartsWith("vbscript:") ||
-               decoded.StartsWith("data:text/html") ||
-               decoded.Contains("expression(");
+        return decoded.StartsWith("javascript:", StringComparison.Ordinal) ||
+               decoded.StartsWith("vbscript:", StringComparison.Ordinal) ||
+               decoded.StartsWith("data:text/html", StringComparison.Ordinal) ||
+               decoded.Contains("expression(", StringComparison.Ordinal);
     }
 }

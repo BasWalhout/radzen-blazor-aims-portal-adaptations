@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 
 #nullable enable
@@ -19,6 +20,12 @@ namespace Radzen.Blazor
         public string? Theme { get; set; }
 
         /// <summary>
+        /// When set to true the icon font will be preloadd.
+        /// </summary>
+        [Parameter]
+        public bool PreloadIconFont { get; set; } = true;
+
+        /// <summary>
         /// Enables WCAG contrast requirements. If set to true additional CSS file will be loaded.
         /// </summary>
         [Parameter]
@@ -30,28 +37,13 @@ namespace Radzen.Blazor
 
         private bool wcag;
 
-        private static readonly string? Version = typeof(RadzenTheme).Assembly.GetName().Version?.ToString();
+        private string Href => ThemeService.Href;
 
-        private string Href => $"{Path}/{theme}-base.css?v={Version}";
+        private string WcagHref => ThemeService.WcagHref;
 
-        private string WcagHref => $"{Path}/{theme}-wcag.css?v={Version}";
+        private string IconFontPath => ThemeService.Embedded ? $"_content/Radzen.Blazor/fonts" : "fonts";
 
-        private string Path => Embedded ? $"_content/Radzen.Blazor/css" : "css";
-
-        private bool Embedded => theme switch
-        {
-            "material" => true,
-            "material-dark" => true,
-            "standard" => true,
-            "standard-dark" => true,
-            "humanistic" => true,
-            "humanistic-dark" => true,
-            "software" => true,
-            "software-dark" => true,
-            "default" => true,
-            "dark" => true,
-            _ => false
-        };
+        private string IconFontHref => $"{IconFontPath}/MaterialSymbolsOutlined.woff2";
 
         private PersistingComponentStateSubscription? persistingSubscription;
 
@@ -63,13 +55,20 @@ namespace Radzen.Blazor
             theme = ThemeService.Theme ?? GetCurrentTheme();
             wcag = ThemeService.Wcag ?? Wcag;
 
-            ThemeService.SetTheme(theme, true);
+            if (theme != null)
+            {
+                ThemeService.SetTheme(theme, true);
+            }
 
             theme = theme?.ToLowerInvariant();
 
             ThemeService.ThemeChanged += OnThemeChanged;
 
+#if NET8_0_OR_GREATER
+            persistingSubscription = persistentComponentState?.RegisterOnPersisting(PersistTheme, RenderMode.InteractiveAuto);
+#else
             persistingSubscription = persistentComponentState?.RegisterOnPersisting(PersistTheme);
+#endif
 
             base.OnInitialized();
         }
@@ -95,7 +94,7 @@ namespace Radzen.Blazor
         {
             var requiresChange = false;
 
-            var newTheme = ThemeService.Theme.ToLowerInvariant();
+            var newTheme = ThemeService.Theme?.ToLowerInvariant() ?? "";
 
             if (theme != newTheme)
             {
@@ -128,6 +127,8 @@ namespace Radzen.Blazor
             }
 
             persistingSubscription?.Dispose();
+
+            GC.SuppressFinalize(this);
         }
     }
 }

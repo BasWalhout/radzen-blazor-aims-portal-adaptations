@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using System;
 using System.Collections.Generic;
@@ -10,11 +10,31 @@ using Radzen.Blazor.Rendering;
 namespace Radzen.Blazor
 {
     /// <summary>
-    /// RadzenPager component.
+    /// A pagination component that provides navigation controls for paged data display.
+    /// RadzenPager displays page numbers, navigation buttons, and optional page size selector for navigating through large datasets.
+    /// Works standalone or integrated with data components like RadzenDataGrid and RadzenDataList.
+    /// Provides navigation buttons (First/Previous/Next/Last page with customizable labels and icons), clickable page number buttons with configurable count,
+    /// optional dropdown to change items per page, summary display ("Page X of Y" or custom summary text), alignment controls (left/center/right) via HorizontalAlign,
+    /// compact or default spacing density, and ARIA labels for all buttons for accessibility.
+    /// The PageChanged event provides Skip and Top values for loading the correct page of data.
+    /// Use Count to specify total items, PageSize for items per page, and PageNumbersCount for visible page buttons.
     /// </summary>
     /// <example>
+    /// Basic pager:
     /// <code>
-    /// &lt;RadzenPager Count="100" PageSize="10" PageNumbersCount="5" PageChanged=@(args => Console.WriteLine($"Skip: {args.Skip}, Top: {args.Top}")) /&gt;
+    /// &lt;RadzenPager Count=@totalCount PageSize="20" PageNumbersCount="5" PageChanged=@LoadPage /&gt;
+    /// @code {
+    ///     int totalCount = 250;
+    ///     async Task LoadPage(PagerEventArgs args) 
+    ///     {
+    ///         // Load items from args.Skip, take args.Top
+    ///     }
+    /// }
+    /// </code>
+    /// Pager with page size selector:
+    /// <code>
+    /// &lt;RadzenPager Count=@totalCount PageSize=@pageSize PageSizeChanged=@OnPageSizeChanged
+    ///              PageSizeOptions=@(new int[] { 10, 20, 50, 100 }) ShowPagingSummary="true" /&gt;
     /// </code>
     /// </example>
     public partial class RadzenPager : RadzenComponent
@@ -41,7 +61,7 @@ namespace Radzen.Blazor
         /// Gets or sets the pager's optional previous page button's label text.
         /// </summary>
         [Parameter]
-        public string PrevPageLabel { get; set; }
+        public string? PrevPageLabel { get; set; }
 
         /// <summary>
         /// Gets or sets the pager's previous page button's title attribute.
@@ -71,7 +91,7 @@ namespace Radzen.Blazor
         /// Gets or sets the pager's optional next page button's label text.
         /// </summary>
         [Parameter]
-        public string NextPageLabel { get; set; }
+        public string? NextPageLabel { get; set; }
 
         /// <summary>
         /// Gets or sets the pager's next page button's title attribute.
@@ -129,7 +149,7 @@ namespace Radzen.Blazor
         /// </summary>
         /// <value>The page size options.</value>
         [Parameter]
-        public IEnumerable<int> PageSizeOptions { get; set; }
+        public IEnumerable<int>? PageSizeOptions { get; set; }
 
         /// <summary>
         /// Gets or sets the page size description text.
@@ -146,20 +166,22 @@ namespace Radzen.Blazor
         public bool ShowPagingSummary { get; set; }
 
         /// <summary>
-        /// Gets or sets the pager summary format.
+        /// Gets or sets the navigation aria-label.
+        /// </summary>
+        [Parameter]
+        public string NavigationAriaLabel { get; set; } = "Pagination";
+
+        /// <summary>
+        /// Gets or sets the pager summary format. <see cref="PagingSummaryTemplate" /> has preference over this property.
         /// </summary>
         /// <value>The pager summary format.</value>
-        /// <remarks>
-        /// <see cref="PagingSummaryTemplate" /> has preference
-        /// </remarks>
         [Parameter]
         public string PagingSummaryFormat { get; set; } = "Page {0} of {1} ({2} items)";
 
 #nullable enable
         /// <summary>
-        /// Gets or sets the pager summary template.
+        /// Gets or sets the pager summary template. Has preference over <see cref="PagingSummaryFormat" />.
         /// </summary>
-        /// <remarks>Has preference over <see cref="PagingSummaryFormat" /></remarks>
         [Parameter]
 		public RenderFragment<PagingInformation>? PagingSummaryTemplate { get; set; }
 #nullable restore
@@ -333,6 +355,7 @@ namespace Radzen.Blazor
                 skip = page * PageSize;
                 await InvokeAsync(Reload);
                 await PageChanged.InvokeAsync(new PagerEventArgs() { Skip = skip, Top = PageSize, PageIndex = CurrentPage });
+                StateHasChanged();
             }
         }
 
@@ -388,6 +411,11 @@ namespace Radzen.Blazor
             {
                 focusedIndex = focusedIndex - 2;
             }
+        }
+
+        internal void ChangeState()
+        {
+            StateHasChanged();
         }
 
         internal void SetCurrentPage(int page)
@@ -460,15 +488,17 @@ namespace Radzen.Blazor
             }
         }
 
-        bool preventKeyDown = false;
+        bool preventKeyDown;
+        bool stopKeydownPropagation;
         int focusedIndex = -3;
 
         /// <summary>
-        /// Handles the <see cref="E:KeyDown" /> event.
+        /// Handles the key down event.
         /// </summary>
         /// <param name="args">The <see cref="KeyboardEventArgs"/> instance containing the event data.</param>
         protected virtual async Task OnKeyDown(KeyboardEventArgs args)
         {
+            ArgumentNullException.ThrowIfNull(args);
             var key = args.Code != null ? args.Code : args.Key;
 
             var numberOfDisplayedPages = Math.Min(endPage + 1, PageNumbersCount);
@@ -476,6 +506,7 @@ namespace Radzen.Blazor
             if (key == "ArrowLeft" || key == "ArrowRight")
             {
                 preventKeyDown = true;
+                stopKeydownPropagation = true;
 
                 focusedIndex = Math.Clamp(focusedIndex + (key == "ArrowLeft" ? -1 : 1), -2, numberOfDisplayedPages + 1);
 
@@ -491,6 +522,7 @@ namespace Radzen.Blazor
             else if (key == "Space" || key == "Enter")
             {
                 preventKeyDown = true;
+                stopKeydownPropagation = true;
 
                 if (focusedIndex == -2)
                 {
@@ -530,6 +562,7 @@ namespace Radzen.Blazor
             else
             {
                 preventKeyDown = false;
+                stopKeydownPropagation = false;
                 shouldFocus = false;
             }
         }
@@ -555,7 +588,7 @@ namespace Radzen.Blazor
         {
             await base.OnAfterRenderAsync(firstRender);
 
-            if (shouldFocus)
+            if (shouldFocus && JSRuntime != null)
             {
                 shouldFocus = false;
                 await JSRuntime.InvokeVoidAsync("Radzen.focusElement", GetId());
